@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>E‑Commerce Order Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- ADDED: Medieval-style web fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=MedievalSharp&display=swap" rel="stylesheet">
+  <!-- Leaflet CSS for map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script>
+    // Choose map provider via URL (?map=google or ?map=leaflet). Default: leaflet
+    window.__MAP_PROVIDER = (new URLSearchParams(location.search)).get('map') || 'leaflet';
+  </script>
+  <style>
+    /* Vintage palette */
+    :root{
+      --bg:#ece3cf;          /* parchment */
+      --bg-deep:#e6dcc6;
+      --ink:#2f2a24;         /* dark sepia text */
+      --muted:#6d5e4d;       /* warm muted */
+      --frame:#c7b59a;       /* paper border */
+      --accent:#b08b57;      /* antique gold */
+      --accent-dark:#8b6a3f;
+      --ok:#5f8f5b;          /* muted green */
+      --warn:#b0832a;        /* muted amber */
+      --bad:#9a4b43;         /* muted red */
+      --info:#6e7b8a;        /* muted steel */
+      --shadow: 0 10px 30px rgba(60,42,33,.20);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      color:var(--ink);
+      font-family: Georgia, "Times New Roman", Times, serif;
+      background:
+        radial-gradient(1200px 800px at 20% -10%, #f5edd9, transparent 70%),
+        radial-gradient(900px 700px at 120% 0%, #eee3cc, transparent 60%),
+        linear-gradient(#efe6d1, #eaddc4 40%, #efe6d1);
+      display:grid;
+      place-items:center;
+      padding:24px;
+    }
+
+    .card{
+      width:min(900px, 95vw);
+      background:
+        repeating-linear-gradient(0deg, #fbf4e3, #fbf4e3 2px, #f7efd9 2px, #f7efd9 4px);
+      border:1.5px solid var(--frame);
+      border-radius:18px;
+      box-shadow: var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+    /* subtle paper grain */
+    .card::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(60% 120% at 100% 0%, rgba(139,106,63,.08), transparent 60%),
+        radial-gradient(80% 100% at 0% 100%, rgba(176,139,87,.06), transparent 60%);
+      pointer-events:none;
+    }
+
+    header{
+      padding:18px 22px;
+      display:flex;
+      align-items:center;
+      gap:14px;
+      border-bottom:1.5px solid var(--frame);
+      background: linear-gradient(0deg, rgba(176,139,87,.08), rgba(176,139,87,.04));
+      min-height: 72px; /* make header taller */
+    }
+
+    .logo{
+      width: 88px;
+      height: 88px;
+      border-radius: 8px;
+      object-fit: cover;
+      display: block;
+      box-shadow: 0 4px 14px rgba(60,42,33,.25);
+      border:1px solid rgba(60,42,33,.25);
+      background:#f2ead6;
+    }
+
+    /* Wrapper so heading image can fill remaining space beside the logo */
+    .heading-area{
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+    .heading-text{
+      font-family: 'UnifrakturMaguntia', 'MedievalSharp', Georgia, "Times New Roman", serif;
+      font-size: clamp(26px, 4.6vw, 56px);
+      line-height: 1.05;
+      margin: 0;
+      color: var(--ink);
+      letter-spacing: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+    }
+
+    @media (max-width: 850px){
+      .heading-text{ font-size: clamp(20px, 6vw, 38px); }
+    }
+
+    /* Ornamental divider */
+    .ornament{
+      display:flex; justify-content:center; padding:8px 0 2px;
+      background:linear-gradient(0deg, rgba(176,139,87,.06), transparent);
+      border-bottom:1px solid var(--frame);
+    }
+    .ornament svg{
+      display:block; height:14px; width:220px; opacity:.55;
+      fill:none; stroke:var(--muted); stroke-width:1.2;
+    }
+
+    .content{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:24px;
+      padding:20px;
+    }
+    @media (max-width: 850px){
+      .content{ grid-template-columns: 1fr; }
+    }
+
+    .panel{
+      background: rgba(245,237,220,.55);
+      border:1px solid var(--frame);
+      border-radius:14px;
+      padding:16px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.35);
+    }
+
+    label{ font-weight:700; letter-spacing:.3px; color:var(--muted) }
+
+    .row{
+      display:flex; gap:10px; align-items:center; margin-top:8px;
+    }
+
+    input[type="text"]{
+      flex:1;
+      padding:12px 14px;
+      border-radius:10px;
+      border:1px solid var(--frame);
+      background:#faf2df;
+      color:var(--ink);
+      outline:none;
+      transition:.2s border-color, .2s box-shadow, .2s background;
+      font-family: "Segoe UI", system-ui, Arial, sans-serif;
+    }
+    input[type="text"]::placeholder{ color:#8b7a66 }
+    input[type="text"]:focus{
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(176,139,87,.20);
+      background:#fff8e9;
+    }
+
+    button{
+      padding:11px 16px;
+      border-radius:10px;
+      border:1px solid var(--accent);
+      background: linear-gradient(180deg, #d8bd8d, #c5a672);
+      color:#2f261c;
+      font-weight:700;
+      cursor:pointer;
+      transition:.15s transform, .2s filter, .2s box-shadow;
+      white-space:nowrap;
+      text-shadow: 0 1px 0 rgba(255,255,255,.45);
+      box-shadow: 0 2px 0 var(--accent-dark);
+    }
+    button:hover{ transform: translateY(-1px); filter: saturate(1.05); }
+    button:active{ transform: translateY(0); box-shadow: none; }
+    button.secondary{
+      border-color: var(--frame);
+      background: linear-gradient(180deg, #f6ebd4, #ebddc0);
+      color:#3b332b;
+      margin-left:8px;
+      box-shadow: 0 2px 0 #bfae91;
+    }
+
+    .status{
+      margin-top:14px;
+      border-radius:12px;
+      padding:14px;
+      background:#faf2df;
+      border:1px solid var(--frame);
+    }
+    .status .label{ color:var(--muted); font-size:13px; font-weight:700 }
+    .status .value{ font-size:18px; margin-top:6px; font-weight:700; color:#3a332b }
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700;
+      letter-spacing:.3px; border:1px solid transparent;
+      background: #efe5cf; color:#4a433a;
+    }
+    .b-ok   { background: #e4efe2; color:#436a40; border-color:#9cc39a }
+    .b-warn { background: #f0e7cf; color:#8a6a2a; border-color:#d5be86 }
+    .b-bad  { background: #f2dfdc; color:#7f403b; border-color:#d7a19c }
+    .b-info { background: #e1e5ea; color:#5c6672; border-color:#b7c1cc }
+
+    .progress{
+      margin-top:12px; height:9px; border-radius:999px;
+      background: #efe6d1; overflow:hidden; border:1px solid var(--frame);
+      position: relative; /* allow truck overlay */
+    }
+    .progress > div{
+      height:100%; width:0%;
+      background: linear-gradient(90deg, #b08b57, #8b6a3f);
+      transition: width .5s ease;
+    }
+    /* Truck overlay on progress bar */
+    .truck-on-bar{
+      position:absolute; top:50%; left:0%; transform: translate(-50%, -50%);
+      width:32px; height:20px; pointer-events:none;
+    }
+    .truck-on-bar svg{ width:100%; height:100%; display:block; }
+
+    .tips{
+      font-size:14px; color:var(--muted); line-height:1.6;
+      font-family: "Segoe UI", system-ui, Arial, sans-serif;
+    }
+    .list{
+      display:grid; gap:8px; margin-top:8px
+    }
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:6px 10px; background: #f2ead6;
+      border:1px solid var(--frame); border-radius:999px; width:max-content;
+      color:#5c4f41; font-weight:600;
+    }
+    /* Add: legend layout under the status bar */
+    .status-legend { margin-top: 10px; }
+    .status-legend .list {
+      display: flex;
+      flex-direction: column;  /* vertical */
+      gap: 8px;
+      align-items: flex-start; /* left-align pills */
+    }
+
+    /* Overrides: thicker borders across the UI */
+    .card{ border-width: 4px; }
+    header{ border-bottom-width: 3px; }
+    .ornament{ border-bottom-width: 3px; }
+    .panel{ border-width: 3px; }
+    .status{ border-width: 3px; }
+    .progress{ border-width: 2px; }
+    .badge{ border-width: 2px; }
+    .pill{ border-width: 2px; }
+    .logo{ border-width: 2px; }
+    input[type="text"]{ border-width: 2px; }
+    button{ border-width: 2px; }
+    button.secondary{ border-width: 2px; }
+
+    /* Fullscreen layout overrides */
+    body{
+      padding: 0;            /* remove outer padding */
+      display: block;        /* no centering grid */
+    }
+
+    .card{
+      width: 100vw;          /* full width */
+      height: 100vh;         /* fallback */
+      height: 100dvh;        /* mobile-safe viewport height */
+      border-radius: 0;      /* edge-to-edge */
+      display: flex;         /* let content fill remaining space */
+      flex-direction: column;
+    }
+
+    .content{
+      flex: 1;               /* fill remaining height */
+      overflow: auto;        /* scroll content if needed */
+      padding: 20px;         /* keep inner padding */
+    }
+
+    /* Optional: heading style for the MAP title */
+    .map-heading{
+      font-family: 'UnifrakturMaguntia','MedievalSharp', Georgia, "Times New Roman", serif;
+      font-size: 28px;
+      margin: 0;
+      letter-spacing: 1px;
+      color: var(--ink);
+    }
+    /* Map container styling */
+    .map{ width:100%; height:360px; min-height:320px; border:3px solid var(--frame); border-radius:12px; background:#f2ead6 }
+    @media (max-width: 850px){ .map{ height:300px } }
+    .map-heading{ font-family: 'UnifrakturMaguntia','MedievalSharp', Georgia, "Times New Roman", serif; margin:0 0 8px; font-size:22px }
+
+  /* Leaflet truck marker styling */
+  .leaflet-div-icon.truck-marker{ background: transparent; border: none; }
+  .truck-marker svg{ width:32px; height:20px; filter: drop-shadow(0 1px 2px rgba(60,42,33,.35)); }
+  /* tip paragraph spacing */
+  .tip-note{ margin-top:8px; }
+  /* Map wrapper and recenter button */
+  .map-wrap{ position: relative; }
+  .map-recenter{
+    position: absolute; right: 10px; bottom: 10px; z-index: 1000;
+    padding: 8px 10px; font-size: 12px;
+  }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <header>
+    <img src="pic.jpg" alt="Logo" class="logo" />
+      <!-- CHANGED: Use text instead of heading.jpg -->
+      <div class="heading-area">
+        <h1 class="heading-text">E‑Commerce Order Tracker</h1>
+      </div>
+    </header>
+
+    <!-- Ornamental divider under header -->
+    <div class="ornament" aria-hidden="true">
+      <svg viewBox="0 0 400 16" preserveAspectRatio="xMidYMid meet">
+        <path d="M5 8 H150 C170 8 180 2 200 2 C220 2 230 8 250 8 H395" />
+        <path d="M200 2 C196 6 196 10 200 14 C204 10 204 6 200 2 Z" />
+      </svg>
+    </div>
+
+    <div class="content">
+      <section class="panel">
+        <label for="orderId">Order ID</label>
+        <div class="row">
+          <input id="orderId" type="text" placeholder="e.g., 1002 or ekart:FMPC123456" />
+          <button id="trackBtn">Track Order</button>
+          <button id="clearBtn" class="secondary">Clear</button>
+        </div>
+
+        <div id="statusBox" class="status" aria-live="polite">
+          <div class="label">Order Status</div>
+          <div class="value">
+            <span id="statusBadge" class="badge b-info">Waiting for input</span>
+          </div>
+          <div class="progress" title="Progress">
+            <div id="bar"></div>
+            <div id="truckBar" class="truck-on-bar" aria-hidden="true">
+              <svg viewBox="0 0 64 32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Delivery truck">
+                <rect x="2" y="10" width="34" height="14" rx="2" fill="#8b6a3f" stroke="#5f4a2a" />
+                <rect x="36" y="12" width="22" height="12" rx="2" fill="#b08b57" stroke="#5f4a2a" />
+                <rect x="41" y="14" width="10" height="6" fill="#e6dcc6" stroke="#5f4a2a"/>
+                <circle cx="16" cy="26" r="4" fill="#2f2a24"/>
+                <circle cx="50" cy="26" r="4" fill="#2f2a24"/>
+                <circle cx="16" cy="26" r="2" fill="#c7b59a"/>
+                <circle cx="50" cy="26" r="2" fill="#c7b59a"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <!-- Added: status legend under the status bar -->
+        <div class="status-legend">
+          <div class="list">
+            <span class="pill">Processing ➜ 25%</span>
+            <span class="pill">Shipped ➜ 50%</span>
+            <span class="pill">Out for Delivery ➜ 85%</span>
+            <span class="pill">Delivered ➜ 100%</span>
+            <span class="pill">Canceled/Returned ➜ 0%</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Live Map panel -->
+      <aside class="panel" aria-label="Live Map">
+        <h2 class="map-heading">MAP</h2>
+        <div class="map-wrap">
+          <div id="map" class="map"></div>
+          <button id="recenterBtn" class="map-recenter" type="button" title="Recenter to your location">Recenter</button>
+        </div>
+  <p class="tips tip-note">Allow location access to see your live position. Uses OpenStreetMap via Leaflet.</p>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Floating Chatbot UI -->
+  <style>
+    .chat-launcher{
+      position: fixed; right: 18px; bottom: 18px; z-index: 2000;
+      width: 54px; height: 54px; border-radius: 50%;
+      background: linear-gradient(180deg, #d8bd8d, #c5a672);
+      border: 2px solid var(--accent);
+      box-shadow: var(--shadow);
+      display:flex; align-items:center; justify-content:center;
+      cursor: pointer;
+    }
+    .chat-launcher svg{ width:26px; height:26px; fill:#2f261c }
+    .chat-panel{
+      position: fixed; right: 18px; bottom: 84px; z-index: 2000;
+      width: min(340px, 92vw);
+      background: rgba(245,237,220,.95);
+      border: 3px solid var(--frame); border-radius: 14px;
+      box-shadow: var(--shadow);
+      display: none; flex-direction: column; overflow: hidden;
+    }
+    .chat-header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 12px; background: linear-gradient(0deg, rgba(176,139,87,.08), rgba(176,139,87,.04));
+      border-bottom: 2px solid var(--frame);
+    }
+    .chat-header h3{ margin:0; font-family:'UnifrakturMaguntia','MedievalSharp', Georgia, serif; font-size:18px }
+    .chat-close{ background:transparent; border:0; cursor:pointer; font-size:18px; color:var(--muted) }
+    .chat-messages{ padding:12px; height: 260px; overflow:auto; display:flex; flex-direction:column; gap:10px; }
+    .msg{ max-width: 85%; padding:8px 10px; border-radius: 10px; border:2px solid var(--frame); background:#fff8e9; color:#2f2a24 }
+    .msg.user{ align-self:flex-end; background:#e9f0ff; border-color:#b7c1cc }
+    .msg.bot{ align-self:flex-start; background:#f2ead6 }
+    .chat-input{ display:flex; gap:8px; padding:10px; border-top:2px solid var(--frame); background:#fbf4e3 }
+    .chat-input input{ flex:1; padding:10px 12px; border-radius:10px; border:2px solid var(--frame); background:#faf2df }
+    .chat-input button{ padding:10px 14px }
+  .typing{ font-size:12px; color:var(--muted); padding:0 12px 8px }
+  .typing.hidden{ display:none }
+  </style>
+  <div id="chatPanel" class="chat-panel" role="dialog" aria-label="Chatbot">
+    <div class="chat-header">
+      <h3>Assistant</h3>
+      <button class="chat-close" title="Close" type="button" aria-label="Close">×</button>
+    </div>
+    <div id="chatMsgs" class="chat-messages" aria-live="polite"></div>
+  <div id="chatTyping" class="typing hidden">Assistant is typing…</div>
+    <div class="chat-input">
+      <input id="chatInput" type="text" placeholder="Ask about your order, e.g. Where is 1002? or ekart:FMPC123456" />
+      <button id="chatSend">Send</button>
+    </div>
+  </div>
+  <button id="chatOpen" class="chat-launcher" title="Chat">
+    <svg viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H8l-4 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
+    </svg>
+  </button>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Initialize map if container exists
+    (function(){
+  if(window.__MAP_PROVIDER === 'google') return; // using Google Maps instead
+      const el = document.getElementById('map');
+      if(!el) return;
+
+      // Default center (e.g., India)
+      const DEFAULT = { lat: 20.5937, lng: 78.9629, zoom: 5 };
+      const map = L.map('map');
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      // Simple truck SVG to reuse for markers
+      const truckSvg = `
+        <svg viewBox="0 0 64 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="2" y="10" width="34" height="14" rx="2" fill="#8b6a3f" stroke="#5f4a2a" />
+          <rect x="36" y="12" width="22" height="12" rx="2" fill="#b08b57" stroke="#5f4a2a" />
+          <rect x="41" y="14" width="10" height="6" fill="#e6dcc6" stroke="#5f4a2a"/>
+          <circle cx="16" cy="26" r="4" fill="#2f2a24"/>
+          <circle cx="50" cy="26" r="4" fill="#2f2a24"/>
+          <circle cx="16" cy="26" r="2" fill="#c7b59a"/>
+          <circle cx="50" cy="26" r="2" fill="#c7b59a"/>
+        </svg>`;
+
+      const makeTruckDivIcon = () => L.divIcon({
+        html: truckSvg,
+        className: 'truck-marker',
+        iconSize: [32, 20],
+        iconAnchor: [16, 10]
+      });
+
+      const lerp = (a, b, t) => [ a[0] + (b[0]-a[0]) * t, a[1] + (b[1]-a[1]) * t ];
+      function posAlongPolyline(latlngs, t){
+        if(!latlngs || latlngs.length < 2){ return latlngs && latlngs[0] ? [latlngs[0].lat, latlngs[0].lng] : null; }
+        // convert to L.LatLng
+        const pts = latlngs.map(p => L.latLng(Array.isArray(p)? p[0]:p.lat, Array.isArray(p)? p[1]:p.lng));
+        // total length
+        let total = 0; const segLen = [];
+        for(let i=0;i<pts.length-1;i++){ const d = pts[i].distanceTo(pts[i+1]); segLen.push(d); total += d; }
+        if(total === 0) return [pts[0].lat, pts[0].lng];
+        let target = total * Math.max(0, Math.min(1, t));
+        for(let i=0;i<segLen.length;i++){
+          if(target > segLen[i]){ target -= segLen[i]; continue; }
+          const frac = segLen[i] === 0 ? 0 : target / segLen[i];
+          const a = pts[i], b = pts[i+1];
+          return [ a.lat + (b.lat-a.lat)*frac, a.lng + (b.lng-a.lng)*frac ];
+        }
+        const last = pts[pts.length-1];
+        return [last.lat, last.lng];
+      }
+
+      let userMarker = null;
+      let accuracyCircle = null;
+  const recenterBtn = document.getElementById('recenterBtn');
+
+      // Delivery object to manage route and moving truck on the map
+      const delivery = {
+        origin: [28.6139, 77.2090], // Delhi by default
+        dest: null,
+  truckMarker: null,
+        routeLine: null,
+        lastProgress: 0,
+        setRoute(origin, dest){
+          this.origin = origin;
+          this.dest = dest;
+          // draw or refresh route line
+          if(this.routeLine){ map.removeLayer(this.routeLine); }
+          this.routeLine = L.polyline([origin, dest], { color:'#8b6a3f', weight:4, opacity:.85 }).addTo(map);
+          // make sure we have a truck marker
+          if(!this.truckMarker){
+            this.truckMarker = L.marker(origin, { icon: makeTruckDivIcon() }).addTo(map);
+          } else {
+            this.truckMarker.setLatLng(origin);
+          }
+          // fit view to route
+          const b = L.latLngBounds([origin, dest]).pad(0.25);
+          map.fitBounds(b);
+          // place truck according to last known progress
+          this.setProgress(this.lastProgress);
+        },
+        setPolyline(points){
+          if(!Array.isArray(points) || points.length < 2) return;
+          if(this.routeLine){ map.removeLayer(this.routeLine); }
+          this.routeLine = L.polyline(points, { color:'#8b6a3f', weight:4, opacity:.85 }).addTo(map);
+          map.fitBounds(this.routeLine.getBounds().pad(0.25));
+          const start = points[0];
+          const end = points[points.length - 1];
+          if(!this.truckMarker){
+            this.truckMarker = L.marker(start, { icon: makeTruckDivIcon() }).addTo(map);
+          }
+          // position will be set by setProgress; default to start
+          this.truckMarker.setLatLng(Array.isArray(start)? start : [start.lat, start.lng]);
+          // keep a normalized 0 when route changes
+          if(this.lastProgress === 100) this.lastProgress = 0;
+          this.setProgress(this.lastProgress);
+        },
+        setProgress(pct){
+          this.lastProgress = Math.max(0, Math.min(100, pct || 0));
+          if(!this.truckMarker) return;
+          const t = this.lastProgress / 100;
+          if(this.routeLine){
+            const latlngs = this.routeLine.getLatLngs();
+            const pos = posAlongPolyline(latlngs, t);
+            if(pos) this.truckMarker.setLatLng(pos);
+          } else if(this.origin && this.dest){
+            const pos = lerp(this.origin, this.dest, t);
+            this.truckMarker.setLatLng(pos);
+          }
+        }
+      };
+      // expose to other scripts
+      window.delivery = delivery;
+
+      function recenter(){
+        if(userMarker){
+          map.setView(userMarker.getLatLng(), 14);
+        } else if(delivery.routeLine){
+          map.fitBounds(delivery.routeLine.getBounds().pad(0.25));
+        } else {
+          map.setView([DEFAULT.lat, DEFAULT.lng], DEFAULT.zoom);
+        }
+      }
+      if(recenterBtn){ recenterBtn.addEventListener('click', recenter); }
+
+      function updatePosition(lat, lng, acc){
+        const latlng = [lat, lng];
+        if(!userMarker){
+          userMarker = L.marker(latlng).addTo(map);
+          map.setView(latlng, 14);
+        } else {
+          userMarker.setLatLng(latlng); 
+        }
+        if(acc){
+          if(!accuracyCircle){
+            accuracyCircle = L.circle(latlng, { radius: acc, color:'#8b6a3f', fillColor:'#b08b57', fillOpacity:0.2 }).addTo(map);
+          } else {
+            accuracyCircle.setLatLng(latlng).setRadius(acc);
+          }
+        }
+        // update delivery route to aim at current user location
+        if(Array.isArray(delivery.origin)){
+          delivery.setRoute(delivery.origin, latlng);
+        }
+      }
+
+      if('geolocation' in navigator){
+        navigator.geolocation.getCurrentPosition(
+          (pos)=>{
+            const { latitude, longitude, accuracy } = pos.coords;
+            updatePosition(latitude, longitude, accuracy);
+          },
+          ()=>{
+            map.setView([DEFAULT.lat, DEFAULT.lng], DEFAULT.zoom);
+            // fallback route: Delhi -> Mumbai
+            delivery.setRoute(delivery.origin, [19.0760, 72.8777]);
+          }
+        );
+        // Watch for real-time updates
+        navigator.geolocation.watchPosition(
+          (pos)=>{
+            const { latitude, longitude, accuracy } = pos.coords;
+            updatePosition(latitude, longitude, accuracy);
+          },
+          (err)=>{ /* silently ignore */ },
+          { enableHighAccuracy:true, maximumAge:10000, timeout:20000 }
+        );
+      } else {
+        map.setView([DEFAULT.lat, DEFAULT.lng], DEFAULT.zoom);
+        // fallback route: Delhi -> Mumbai
+        delivery.setRoute(delivery.origin, [19.0760, 72.8777]);
+      }
+    })();
+  </script>
+  
+  <!-- Optional Google Maps support (set window.GMAPS_API_KEY and use ?map=google) -->
+  <script>
+    (function(){
+      if(window.__MAP_PROVIDER !== 'google') return;
+      const el = document.getElementById('map');
+      if(!el) return;
+
+      // Google callback initializes the map and delivery logic
+      window.initGMap = function(){
+        const DEFAULT = { lat: 20.5937, lng: 78.9629, zoom: 5 };
+        const map = new google.maps.Map(el, { center: {lat: DEFAULT.lat, lng: DEFAULT.lng}, zoom: DEFAULT.zoom, mapTypeId: 'roadmap' });
+
+        let userMarker = null;
+        let accuracyCircle = null;
+        const recenterBtn = document.getElementById('recenterBtn');
+
+        function posAlongPath(path, t){
+          if(!path || path.length < 2) return null;
+          let total = 0; const segLen = [];
+          for(let i=0;i<path.length-1;i++){
+            const d = (google.maps.geometry && google.maps.geometry.spherical)
+              ? google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
+              : Math.hypot(path[i+1].lat() - path[i].lat(), path[i+1].lng() - path[i].lng());
+            segLen.push(d); total += d;
+          }
+          if(total === 0) return path[0];
+          let target = total * Math.max(0, Math.min(1, t));
+          for(let i=0;i<segLen.length;i++){
+            if(target > segLen[i]){ target -= segLen[i]; continue; }
+            const frac = segLen[i] === 0 ? 0 : target / segLen[i];
+            const a = path[i], b = path[i+1];
+            return new google.maps.LatLng(
+              a.lat() + (b.lat() - a.lat()) * frac,
+              a.lng() + (b.lng() - a.lng()) * frac
+            );
+          }
+          return path[path.length-1];
+        }
+
+        const delivery = {
+          route: null,
+          truckMarker: null,
+          lastProgress: 0,
+          setRoute(origin, dest){
+            const path = [origin, dest].map(p => ({ lat: Array.isArray(p)? p[0]:p.lat, lng: Array.isArray(p)? p[1]:p.lng }));
+            if(this.route) this.route.setMap(null);
+            this.route = new google.maps.Polyline({ path, strokeColor:'#8b6a3f', strokeOpacity:.85, strokeWeight:4, map });
+            if(!this.truckMarker){
+              this.truckMarker = new google.maps.Marker({
+                position: path[0],
+                map,
+                icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 4, strokeColor:'#5f4a2a', fillColor:'#b08b57', fillOpacity:1 }
+              });
+            } else {
+              this.truckMarker.setPosition(path[0]);
+            }
+            const bounds = new google.maps.LatLngBounds();
+            path.forEach(pt => bounds.extend(pt));
+            map.fitBounds(bounds);
+            this.setProgress(this.lastProgress);
+          },
+          setPolyline(points){
+            if(!Array.isArray(points) || points.length < 2) return;
+            const path = points.map(p => ({ lat: Array.isArray(p)? p[0]:p.lat, lng: Array.isArray(p)? p[1]:p.lng }));
+            if(this.route) this.route.setMap(null);
+            this.route = new google.maps.Polyline({ path, strokeColor:'#8b6a3f', strokeOpacity:.85, strokeWeight:4, map });
+            const bounds = new google.maps.LatLngBounds();
+            path.forEach(pt => bounds.extend(pt));
+            map.fitBounds(bounds);
+            if(!this.truckMarker){
+              this.truckMarker = new google.maps.Marker({
+                position: path[0],
+                map,
+                icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 4, strokeColor:'#5f4a2a', fillColor:'#b08b57', fillOpacity:1 }
+              });
+            } else {
+              this.truckMarker.setPosition(path[0]);
+            }
+            if(this.lastProgress === 100) this.lastProgress = 0;
+            this.setProgress(this.lastProgress);
+          },
+          setProgress(pct){
+            this.lastProgress = Math.max(0, Math.min(100, pct || 0));
+            if(!this.truckMarker) return;
+            if(this.route){
+              const path = this.route.getPath().getArray();
+              const pos = posAlongPath(path, this.lastProgress/100);
+              if(pos) this.truckMarker.setPosition(pos);
+            }
+          }
+        };
+        window.delivery = delivery;
+
+        function recenter(){
+          if(userMarker){
+            map.setZoom(14); map.setCenter(userMarker.getPosition());
+          } else if(delivery.route){
+            const bounds = new google.maps.LatLngBounds();
+            delivery.route.getPath().forEach(pt => bounds.extend(pt));
+            map.fitBounds(bounds);
+          } else {
+            map.setCenter({lat: DEFAULT.lat, lng: DEFAULT.lng}); map.setZoom(DEFAULT.zoom);
+          }
+        }
+        if(recenterBtn) recenterBtn.addEventListener('click', recenter);
+
+        function updatePosition(lat, lng, acc){
+          const pos = new google.maps.LatLng(lat, lng);
+          if(!userMarker){
+            userMarker = new google.maps.Marker({ position: pos, map });
+            map.setZoom(14); map.setCenter(pos);
+          } else {
+            userMarker.setPosition(pos);
+          }
+          if(acc){
+            if(!accuracyCircle){
+              accuracyCircle = new google.maps.Circle({ center: pos, radius: acc, strokeColor:'#8b6a3f', fillColor:'#b08b57', fillOpacity:0.2, map });
+            } else {
+              accuracyCircle.setCenter(pos); accuracyCircle.setRadius(acc);
+            }
+          }
+          if(Array.isArray(delivery.origin)){
+            delivery.setRoute(delivery.origin, [lat, lng]);
+          }
+        }
+
+        if('geolocation' in navigator){
+          navigator.geolocation.getCurrentPosition(
+            (p)=>{ updatePosition(p.coords.latitude, p.coords.longitude, p.coords.accuracy); },
+            ()=>{ map.setCenter({lat: DEFAULT.lat, lng: DEFAULT.lng}); map.setZoom(DEFAULT.zoom); },
+            { enableHighAccuracy:true, maximumAge:10000, timeout:20000 }
+          );
+          navigator.geolocation.watchPosition(
+            (p)=>{ updatePosition(p.coords.latitude, p.coords.longitude, p.coords.accuracy); },
+            ()=>{},
+            { enableHighAccuracy:true, maximumAge:10000, timeout:20000 }
+          );
+        } else {
+          map.setCenter({lat: DEFAULT.lat, lng: DEFAULT.lng}); map.setZoom(DEFAULT.zoom);
+        }
+      };
+
+      // Dynamically load Google Maps if key is provided
+      if(window.GMAPS_API_KEY){
+        const s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(window.GMAPS_API_KEY) + '&libraries=geometry&callback=initGMap';
+        document.head.appendChild(s);
+      } else {
+        console.warn('Google Maps: set window.GMAPS_API_KEY = "YOUR_API_KEY" then reload, or use ?map=leaflet');
+      }
+    })();
+  </script>
+  <script>
+    // Fake database: map Order ID -> status
+    const orders = {
+      "1001": "Processing",
+      "1002": "Shipped",
+      "1003": "Out for Delivery",
+      "1004": "Delivered",
+      "1005": "Canceled",
+      "O_ID_3000034": "Shipped",
+      "O_ID_3000022": "Delivered",
+      "O_ID_3000046": "Processing"
+    };
+
+    // Map status -> badge class and progress
+    const statusMeta = {
+      "Processing":       { cls: "b-info", prog: 25 },
+      "Packed":           { cls: "b-info", prog: 35 },
+      "Shipped":          { cls: "b-warn", prog: 50 },
+      "In Transit":       { cls: "b-warn", prog: 70 },
+      "Out for Delivery": { cls: "b-warn", prog: 85 },
+      "Delivered":        { cls: "b-ok",   prog: 100 },
+      "Canceled":         { cls: "b-bad",  prog: 0 },
+      "Returned":         { cls: "b-bad",  prog: 0 }
+    };
+
+    const input = document.getElementById("orderId");
+    const trackBtn = document.getElementById("trackBtn");
+    const clearBtn = document.getElementById("clearBtn");
+  const badge = document.getElementById("statusBadge");
+  const bar = document.getElementById("bar");
+  const truckBar = document.getElementById("truckBar");
+
+    function setBadge(text, cls){
+      badge.className = "badge " + cls;
+      badge.textContent = text;
+    }
+    function setProgress(pct){
+      const val = Math.max(0, Math.min(100, pct ?? 0));
+      bar.style.width = val + "%";
+      if(truckBar){ truckBar.style.left = val + "%"; }
+      if(window.delivery && typeof window.delivery.setProgress === 'function'){
+        window.delivery.setProgress(val);
+      }
+    }
+
+    async function tryRealTracking(id){
+      try{
+        const res = await fetch(`/api/track?orderId=${encodeURIComponent(id)}`, { headers: { 'Accept': 'application/json' } });
+        if(!res.ok) return null;
+        const data = await res.json();
+        // expected schema: { status: string, progress: number (0-100), origin?: [lat,lng], dest?: [lat,lng], polyline?: Array<[lat,lng]> }
+        return data;
+      }catch{ return null; }
+    }
+
+    function parseCarrierInput(text){
+      const s = (text||'').trim();
+      const idx = s.indexOf(':');
+      if(idx <= 0) return null;
+      const carrier = s.slice(0, idx).trim().toLowerCase();
+      const tracking = s.slice(idx+1).trim();
+      if(!carrier || !tracking) return null;
+      return { carrier, tracking };
+    }
+
+    async function tryCarrierTrackingFromInput(text){
+      const parsed = parseCarrierInput(text);
+      if(!parsed) return null;
+      try{
+        const url = `/api/track-carrier?carrier=${encodeURIComponent(parsed.carrier)}&tracking=${encodeURIComponent(parsed.tracking)}`;
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const body = await res.json().catch(()=> ({}));
+        if(!res.ok){ return { error: body?.error || `Carrier tracking failed (${res.status})` }; }
+        return { data: body };
+      }catch{
+        return { error: 'Carrier tracking request failed' };
+      }
+    }
+
+    async function track() {
+      const id = (input.value || "").trim();
+      if(!id){
+        setBadge("Please enter an Order ID", "b-info");
+        setProgress(0);
+        return;
+      }
+
+      // 0) If input is carrier:tracking, try carrier tracking first
+      const carrierAttempt = await tryCarrierTrackingFromInput(id);
+      if(carrierAttempt){
+        if(carrierAttempt.error){
+          setBadge(carrierAttempt.error, 'b-bad');
+          setProgress(0);
+          return;
+        }
+        const live = carrierAttempt.data;
+        const status = live.status || 'In Transit';
+        const progress = typeof live.progress === 'number' ? live.progress : (statusMeta[status]?.prog ?? 40);
+        const cls = statusMeta[status]?.cls || 'b-info';
+        setBadge(status, cls);
+        setProgress(progress);
+        if(window.delivery){
+          if(Array.isArray(live.polyline) && live.polyline.length >= 2){
+            window.delivery.setPolyline(live.polyline);
+          } else if(Array.isArray(live.origin) && Array.isArray(live.dest)){
+            window.delivery.setRoute(live.origin, live.dest);
+          }
+        }
+        return;
+      }
+
+      // 1) Try backend API
+      const live = await tryRealTracking(id);
+      if(live && typeof live === 'object'){
+        const status = live.status || 'In Transit';
+        const progress = typeof live.progress === 'number' ? live.progress : (statusMeta[status]?.prog ?? 40);
+        const cls = statusMeta[status]?.cls || 'b-info';
+        setBadge(status, cls);
+        setProgress(progress);
+        // route update from API
+        if(window.delivery){
+          if(Array.isArray(live.polyline) && live.polyline.length >= 2){
+            window.delivery.setPolyline(live.polyline);
+          } else if(Array.isArray(live.origin) && Array.isArray(live.dest)){
+            window.delivery.setRoute(live.origin, live.dest);
+          }
+        }
+        return;
+      }
+
+      // 2) Fallback to local sample data
+      const status = orders[id];
+      if(!status){
+        setBadge("Order not found", "b-bad");
+        setProgress(0);
+        return;
+      }
+      const meta = statusMeta[status] || { cls:"b-info", prog: 40 };
+      setBadge(status, meta.cls);
+      setProgress(meta.prog);
+    }
+
+    function clearAll(){
+      input.value = "";
+      setBadge("Waiting for input", "b-info");
+      setProgress(0);
+      input.focus();
+    }
+
+    trackBtn.addEventListener("click", track);
+    clearBtn.addEventListener("click", clearAll);
+    input.addEventListener("keydown", (e)=>{ if(e.key==="Enter") track(); });
+  </script>
+  <script>
+    // Simple chatbot wiring
+    (function(){
+      const panel = document.getElementById('chatPanel');
+      const openBtn = document.getElementById('chatOpen');
+      const closeBtn = panel.querySelector('.chat-close');
+      const msgs = document.getElementById('chatMsgs');
+      const typing = document.getElementById('chatTyping');
+      const inputEl = document.getElementById('chatInput');
+      const sendBtn = document.getElementById('chatSend');
+
+      function toggle(show){ panel.style.display = show ? 'flex' : 'none'; if(show) inputEl.focus(); }
+      openBtn.addEventListener('click', ()=> toggle(panel.style.display==='none' || panel.style.display===''));
+      closeBtn.addEventListener('click', ()=> toggle(false));
+
+      function addMsg(text, who){
+        const div = document.createElement('div');
+        div.className = 'msg ' + (who||'bot');
+        div.textContent = text;
+        msgs.appendChild(div);
+        msgs.scrollTop = msgs.scrollHeight;
+      }
+
+      // Initial greeting
+      addMsg('Hi! I can help track orders. Try: "track 1002" or "ekart:FMPC123456".', 'bot');
+
+    async function send(){
+        const text = (inputEl.value||'').trim();
+        if(!text) return;
+        addMsg(text, 'user');
+        inputEl.value='';
+  typing.classList.remove('hidden');
+        try{
+      const isAI = /^\s*(ai:|ask:)\s*/i.test(text);
+      const endpoint = isAI ? '/api/chat-ai' : '/api/chat';
+      const cleanText = isAI ? text.replace(/^\s*(ai:|ask:)\s*/i, '') : text;
+      const res = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json', 'Accept':'application/json' }, body: JSON.stringify({ message: cleanText }) });
+          const body = await res.json().catch(()=>({ reply:'Sorry, something went wrong.' }));
+          try{ if(body) console.debug('chat:server-reply', body.meta || null, body.reply); }catch{}
+          if(!res.ok){
+            // Fallback: try client-side tracking
+            const replied = await clientSideFallback(text);
+            if(!replied){
+              const msg = body?.error || body?.reply || `Request failed (${res.status}). Ensure the server is running at http://localhost:3000`;
+              addMsg(msg, 'bot');
+            }
+            return;
+          }
+          // If the user message looks like a complaint, prefer a support-style reply even if server sent a plain status
+          const isComplaint = /(issue|problem|support|complain|complaint|damag|damaged|damage|broken|defect|faulty|wrong|missing|lost|late|delay|refund|return|replace|exchange|cancel|not\s*work|doesn['’]?t\s*work|cannot|can['’]?t|error|failed|fail|stuck)/i.test(text.toLowerCase());
+          let replyText = body.reply || 'Okay.';
+          if(isComplaint && body && body.data){
+            const digitTokens = text.match(/[A-Za-z]*\d[A-Za-z0-9_\-]*/g) || [];
+            const oid = digitTokens[0];
+            if(oid){
+              const status = body.data.status || 'In Transit';
+              replyText = `I can help with your order ${oid}. Current status: ${status}.\n- To refresh status, reply: track ${oid}.\n- For returns/replacements, share what went wrong (e.g., 'return ${oid} damaged item').\n- For cancellations, note shipping may limit this.`;
+            }
+          }
+          addMsg(replyText, 'bot');
+          // If backend provided structured tracking data, reflect it in the main UI
+          const live = body.data;
+          if(live && typeof live === 'object'){
+            const status = live.status || 'In Transit';
+            const progress = typeof live.progress === 'number' ? live.progress : (statusMeta[status]?.prog ?? 40);
+            const cls = statusMeta[status]?.cls || 'b-info';
+            if(typeof setBadge === 'function') setBadge(status, cls);
+            if(typeof setProgress === 'function') setProgress(progress);
+            if(window.delivery){
+              if(Array.isArray(live.polyline) && live.polyline.length >= 2){
+                window.delivery.setPolyline(live.polyline);
+              } else if(Array.isArray(live.origin) && Array.isArray(live.dest)){
+                window.delivery.setRoute(live.origin, live.dest);
+              }
+            }
+          }
+        }catch{
+          // Network error: try client fallback
+          const replied = await clientSideFallback(text);
+          if(!replied) addMsg('Network error. Ensure the app is served via http://localhost:3000 and try again.', 'bot');
+        }finally{
+          typing.classList.add('hidden');
+        }
+      }
+
+      async function clientSideFallback(text){
+        try{
+          const lower = (text||'').toLowerCase();
+          // Support/issue intents handled client-side as well
+          const issueIntent = /(issue|problem|support|complain|complaint|damage|broken|defect|faulty|wrong|missing|lost|late|delay|refund|return|replace|exchange|cancel)/i.test(lower);
+          if(issueIntent){
+            const digitTokensI = text.match(/[A-Za-z]*\d[A-Za-z0-9_\-]*/g) || [];
+            const oid = digitTokensI[0];
+            if(oid && orders[oid]){
+              const status = orders[oid];
+              const meta = statusMeta[status] || { cls:'b-info', prog:40 };
+              if(typeof setBadge === 'function') setBadge(status, meta.cls);
+              if(typeof setProgress === 'function') setProgress(meta.prog);
+              addMsg(`I can help with your order ${oid}. Current status: ${status}.\n- To refresh status, reply: track ${oid}.\n- For returns/replacements, share what went wrong (e.g., 'return ${oid} damaged item').\n- For cancellations, note shipping may limit this.`, 'bot');
+              return true;
+            } else {
+              addMsg(`I can help. Please share your Order ID (e.g., 1002).\n- To track, send: track <orderId>\n- For returns/replacements, describe the issue with the order ID.\n- For cancellations, note it may not be possible after shipping.`, 'bot');
+              return true;
+            }
+          }
+
+          // 1) carrier:tracking?
+          if(typeof parseCarrierInput === 'function' && typeof tryCarrierTrackingFromInput === 'function'){
+            const parsed = parseCarrierInput(text);
+            if(parsed){
+              const attempt = await tryCarrierTrackingFromInput(text);
+              if(attempt && !attempt.error && attempt.data){
+                const live = attempt.data;
+                const status = live.status || 'In Transit';
+                const progress = typeof live.progress === 'number' ? live.progress : (statusMeta[status]?.prog ?? 40);
+                const cls = statusMeta[status]?.cls || 'b-info';
+                if(typeof setBadge === 'function') setBadge(status, cls);
+                if(typeof setProgress === 'function') setProgress(progress);
+                if(window.delivery){
+                  if(Array.isArray(live.polyline) && live.polyline.length >= 2){
+                    window.delivery.setPolyline(live.polyline);
+                  } else if(Array.isArray(live.origin) && Array.isArray(live.dest)){
+                    window.delivery.setRoute(live.origin, live.dest);
+                  }
+                }
+                addMsg(`Status: ${status}${typeof live.progress==='number'?` (${live.progress}%)`:''}.`, 'bot');
+                return true;
+              }
+            }
+          }
+
+          // 2) extract first token containing digits as orderId
+          const digitTokens = text.match(/[A-Za-z]*\d[A-Za-z0-9_\-]*/g) || [];
+          const orderId = digitTokens[0];
+          if(orderId){
+            // Try backend /api/track
+            if(typeof tryRealTracking === 'function'){
+              const live = await tryRealTracking(orderId);
+              if(live){
+                const status = live.status || 'In Transit';
+                const progress = typeof live.progress === 'number' ? live.progress : (statusMeta[status]?.prog ?? 40);
+                const cls = statusMeta[status]?.cls || 'b-info';
+                if(typeof setBadge === 'function') setBadge(status, cls);
+                if(typeof setProgress === 'function') setProgress(progress);
+                if(window.delivery){
+                  if(Array.isArray(live.polyline) && live.polyline.length >= 2){
+                    window.delivery.setPolyline(live.polyline);
+                  } else if(Array.isArray(live.origin) && Array.isArray(live.dest)){
+                    window.delivery.setRoute(live.origin, live.dest);
+                  }
+                }
+                addMsg(`Order ${orderId}: ${status}${typeof live.progress==='number'?` (${live.progress}%)`:''}.`, 'bot');
+                return true;
+              }
+            }
+            // 3) fallback to local map
+            const status = orders[orderId];
+            if(status){
+              const meta = statusMeta[status] || { cls:'b-info', prog:40 };
+              if(typeof setBadge === 'function') setBadge(status, meta.cls);
+              if(typeof setProgress === 'function') setProgress(meta.prog);
+              addMsg(`Order ${orderId}: ${status} (${meta.prog}%).`, 'bot');
+              return true;
+            }
+          }
+        }catch{ /* ignore */ }
+  // Nothing matched; provide guidance
+  addMsg('I can track orders like 1002 or O_ID_3000034, or carrier codes like ekart:TRACK_ID. For general questions, prefix with ai: (e.g., ai: what\'s the return policy?).', 'bot');
+  return true;
+      }
+
+      sendBtn.addEventListener('click', send);
+      inputEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') send(); });
+    })();
+  </script>
+</body>
+</html>
