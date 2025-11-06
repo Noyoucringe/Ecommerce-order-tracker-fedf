@@ -1,0 +1,201 @@
+:root{
+  /* Royal dark theme with gold highlights */
+  --bg: #0b1220;        /* deep navy */
+  --bg-elev: #0d1629;   /* slightly raised */
+  --surface: #0f1a2b;   /* surfaces */
+  --panel: #0a1222;     /* panels */
+  --card: #0f172a;      /* cards */
+  --text: #e5e7eb;      /* slate-200 */
+  --muted: #94a3b8;     /* slate-400 */
+  --line: #1e293b;      /* slate-700 */
+  --accent: #d4af37;    /* gold */
+  --accent2: #7c3aed;   /* royal purple */
+  --ok: #22c55e;        /* green-500 */
+  --warn: #f59e0b;      /* amber-500 */
+  --bad: #ef4444;       /* red-500 */
+  --shadow: 0 12px 30px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+html{ background-color: var(--bg); }
+body{
+  margin:0;
+  font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--text);
+  /* Dark royal background with subtle grid and glow */
+  background-color: var(--bg);
+  background:
+    radial-gradient(1200px 700px at -10% -10%, rgba(124,58,237,.25), transparent 60%),
+    radial-gradient(1000px 700px at 110% 0%, rgba(212,175,55,.18), transparent 65%),
+    radial-gradient(800px 600px at 120% 120%, rgba(124,58,237,.14), transparent 70%),
+    linear-gradient(180deg, #0b1220 0%, #0a1322 55%, #0b1220 100%);
+}
+
+.page{ min-height:100vh; display:flex; flex-direction:column }
+
+.page{ position: relative; z-index: 1 }
+
+.site-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 14px 20px; border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(124,58,237,.15), rgba(13,22,41,.9));
+  position: sticky; top: 0; z-index: 5;
+}
+.brand{ display:flex; align-items:center; gap:12px }
+.logo{ width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg, #d4af37, #7c3aed); display:grid; place-items:center; box-shadow: 0 8px 22px rgba(0,0,0,.35); border:1px solid rgba(212,175,55,.65); color:#0a1222; text-shadow: 0 1px 0 rgba(255,255,255,.25); font-size: 20px }
+.title{ font-family: Cinzel, Poppins, Inter, system-ui, sans-serif; font-weight:700; font-size: 24px; margin:0; letter-spacing:.3px; 
+  background: linear-gradient(90deg, #f7e7a1, #d4af37 40%, #c49a14 75%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 2px 12px rgba(212,175,55,.25);
+}
+.header-actions{ display:flex; gap:8px }
+
+.content{ max-width:1100px; margin: 0 auto; padding: 20px; width: 100% }
+
+.hero{ text-align:center; padding: 28px 8px }
+.hero-title{ font-family: Poppins, Inter, sans-serif; font-weight:700; font-size: clamp(24px, 5vw, 40px); margin: 0 0 6px }
+.hero-sub{ color: var(--muted); margin: 0 0 16px }
+
+.track-form{ display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap: wrap }
+
+.input{
+  background: #0b1426; color: var(--text);
+  border: 1px solid #23324a; border-radius: 10px;
+  padding: 10px 12px; outline:none; min-width: 230px;
+}
+.input:focus{ border-color: rgba(212,175,55,.7); box-shadow: 0 0 0 3px rgba(212,175,55,.18) }
+.input.xl{ min-width: 300px; padding: 12px 14px }
+
+.btn{
+  background: linear-gradient(135deg, rgba(212,175,55,.95), rgba(124,58,237,.92));
+  border: 1px solid rgba(212,175,55,.35);
+  color: white; font-weight: 700; border-radius: 10px; padding: 10px 14px;
+  cursor: pointer; transition: transform .12s ease, filter .2s ease, box-shadow .2s ease;
+  box-shadow: 0 8px 20px rgba(0,0,0,.35);
+}
+.btn:hover{ transform: translateY(-1px); filter: saturate(1.05) }
+.btn:active{ transform: translateY(0) }
+.btn.primary.xl{ padding: 12px 18px }
+.btn.ghost{ background: #0b1426; border-color: #26354d; color: var(--text) }
+.btn.warn{ background: linear-gradient(135deg, rgba(245,158,11,.95), rgba(239,68,68,.95)); border-color: rgba(245,158,11,.4) }
+
+/* button focus ring + subtle ripple on active */
+.btn:focus-visible{ outline: none; box-shadow: 0 0 0 3px rgba(212,175,55,.35), 0 10px 22px rgba(0,0,0,.35) }
+.btn:active{
+  background-image:
+    radial-gradient(120px 120px at center, rgba(255,255,255,.15), transparent 60%),
+    linear-gradient(135deg, rgba(212,175,55,.92), rgba(124,58,237,.92));
+}
+
+.checkbox{ display:flex; align-items:center; gap:6px; color: var(--muted) }
+
+.grid{ display:grid; gap: 16px; grid-template-columns: 1.4fr 1fr; grid-template-areas: 
+  "track map"
+  "overview actions"
+  "orders actions";
+}
+.grid .span-2{ grid-column: span 2 }
+@media (max-width: 900px){ 
+  .grid{ grid-template-columns: 1fr; grid-template-areas: 
+    "track"
+    "map"
+    "overview"
+    "orders"
+    "actions"; 
+  }
+  .grid .span-2{ grid-column: span 1 }
+}
+
+#card-tracking{ grid-area: track }
+#card-map{ grid-area: map }
+#card-analytics{ grid-area: overview }
+#card-search{ grid-area: orders }
+#card-actions{ grid-area: actions }
+
+.card{ background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow:hidden; transition: transform .18s ease, border-color .2s ease, box-shadow .2s ease }
+.card:hover{ transform: translateY(-2px); border-color: rgba(212,175,55,.35); box-shadow: 0 16px 36px rgba(0,0,0,.55) }
+.card-header{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding: 14px 14px; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, rgba(212,175,55,.10), rgba(124,58,237,.10)) }
+
+.badge{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px; color:#f1f5f9; background: rgba(124,58,237,.18); border:1px solid rgba(212,175,55,.35) }
+.badge.ok{ background: rgba(34,197,94,.18); color:#bbf7d0; border-color: rgba(34,197,94,.35) }
+.badge.warn{ background: rgba(245,158,11,.18); color:#fde68a; border-color: rgba(245,158,11,.35) }
+.badge.bad{ background: rgba(239,68,68,.18); color:#fecaca; border-color: rgba(239,68,68,.35) }
+.badge.info{ background: rgba(212,175,55,.18); color:#fde68a; border-color: rgba(212,175,55,.35) }
+
+.progress{ height: 10px; background:#0b1426; border-top:1px solid var(--line); border-bottom:1px solid var(--line); position:relative; overflow:hidden }
+.progress .bar{ position:absolute; inset:0; width:0%; background: linear-gradient(90deg, #7c3aed, #d4af37); box-shadow: inset 0 0 8px rgba(0,0,0,.25); transition: width .45s ease }
+.progress .bar::after{
+  content:""; position:absolute; top:0; bottom:0; width:40%; left:-50%;
+  background: linear-gradient(90deg, rgba(255,255,255,.18), rgba(255,255,255,0), rgba(255,255,255,.18));
+  filter: blur(1px); mix-blend-mode: screen; pointer-events:none;
+  animation: shimmer 1.2s linear infinite;
+}
+@keyframes shimmer{ from{ transform: translateX(0) } to{ transform: translateX(250%) } }
+
+.meta{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; padding: 10px 14px; border-top:1px solid var(--line); color: var(--muted) }
+@media (max-width: 600px){ .meta{ grid-template-columns: 1fr } }
+
+.timeline{ padding: 10px 14px; display:grid; gap:8px }
+.step{ display:flex; align-items:center; gap:10px; color: var(--muted) }
+.step .dot{ width:10px; height:10px; border-radius:50%; background:#1f2a3e; border:1px solid #2a3a54 }
+.step.done .dot{ background: linear-gradient(135deg, #7c3aed, #d4af37); border-color: #a78bfa }
+.step .label{ font-weight:600 }
+.step .time{ font-size:12px }
+
+.kpis{ display:flex; flex-wrap: wrap; gap:8px; padding: 10px 14px }
+.kpi{ padding:6px 10px; border-radius:999px; background:#eef2ff; border:1px solid #e0e7ff; color:#1e3a8a; font-weight:700 }
+
+.row{ display:flex; gap:8px; align-items:center; padding: 10px 14px; flex-wrap: wrap; width: 100% }
+.col{ display:flex; flex-direction:column; gap:8px; padding: 10px 14px }
+.row .input, .row select.input{ flex: 1 1 260px; min-width: 0 }
+.col .input, .col textarea.input{ width: 100% }
+textarea.input{ min-height: 110px; resize: vertical }
+
+/* Make the Actions panel more spacious and prevent overlap */
+#card-actions .row{ gap: 12px }
+#card-actions .input{ flex: 1 1 300px }
+@media (max-width: 700px){
+  #card-actions .input{ flex: 1 1 100% }
+}
+.list{ padding: 8px 14px; display:grid; gap:8px; list-style:none; margin:0 }
+.list li{ padding:8px 12px; border-radius:10px; background:#0b1426; border:1px solid var(--line); cursor: pointer }
+.list li:hover{ border-color: rgba(99,102,241,.5) }
+
+.h4{ margin: 4px 14px 6px; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .3px }
+.divider{ height:1px; background: var(--line); margin: 8px 14px }
+.muted{ color: var(--muted) }
+
+.site-footer{ padding: 12px 20px; border-top: 1px solid var(--line); color: var(--muted); background: #0b1426 }
+.site-footer a{ color: #1d4ed8 }
+
+/* Map styles */
+.map{ height: 380px; background: #0b1426; border-top: 1px solid var(--line) }
+.leaflet-container{ background: #0b1426 }
+.leaflet-control-zoom a{ background:#0b1426; color:#e2e8f0; border:1px solid var(--line) }
+.leaflet-bar a:hover{ background:#131f33 }
+
+/* Truck marker styles */
+.truck-icon{ position:relative; width:30px; height:30px; }
+.truck-pin{
+  position: absolute; inset: 0; margin:auto; width:30px; height:30px; border-radius:50%;
+  background: linear-gradient(135deg, #7c3aed, #d4af37); color:#fff; display:grid; place-items:center;
+  box-shadow: 0 6px 16px rgba(212,175,55,.35); font-size:16px; line-height:1;
+  transform-origin: center bottom; animation: truck-float 1.8s ease-in-out infinite;
+}
+.truck-pin::after{
+  content:""; position:absolute; inset:-6px; border-radius:999px; border:2px solid rgba(212,175,55,.25);
+  animation: truck-pulse 1.8s ease-out infinite; pointer-events:none;
+}
+@keyframes truck-float{ 0%,100%{ transform: translateY(0) } 50%{ transform: translateY(-2px) } }
+@keyframes truck-pulse{ 0%{ opacity:.5; transform: scale(.9) } 100%{ opacity:0; transform: scale(1.2) } }
+
+/* Subtle route design overlay (decorative) */
+body::after{
+  content:""; position: fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(212,175,55,.035) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(-45deg, rgba(124,58,237,.035) 0 1px, transparent 1px 40px),
+    radial-gradient(600px 400px at 20% 80%, rgba(212,175,55,.06), transparent 70%),
+    radial-gradient(500px 400px at 80% 20%, rgba(124,58,237,.06), transparent 70%);
+}

@@ -2,6 +2,9 @@
 .env
 .env.*
 
+# User data
+subscriptions.json
+
 # Node
 node_modules/
 npm-debug.log*

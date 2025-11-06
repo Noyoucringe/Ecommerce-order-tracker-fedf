@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Order Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css" />
+    <!-- Leaflet for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet Routing Machine for accurate routes -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="site-header">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">🚚</div>
+          <h1 class="title">Order Tracker</h1>
+        </div>
+        <nav class="header-actions">
+          <button class="btn ghost" id="btn-open-help" aria-label="Open help">Help</button>
+        </nav>
+      </header>
+
+      <main class="content">
+        <section class="hero">
+          <h2 class="hero-title">Track. Update. Resolve.</h2>
+          <p class="hero-sub">Vibrant, fast, and clear shipment tracking with live updates and simple actions.</p>
+
+          <form id="track-form" class="track-form" autocomplete="off">
+            <input id="track-input" class="input xl" placeholder="Order ID or tracking number (supports carrier auto-detect)" aria-label="Order or tracking" />
+            <button class="btn primary xl" type="submit">Track</button>
+            <label class="checkbox">
+              <input type="checkbox" id="live-toggle" />
+              <span>Live updates</span>
+            </label>
+            <button class="btn ghost" id="btn-random" type="button">Random demo</button>
+          </form>
+        </section>
+
+        <section class="grid">
+          <div class="card span-2" id="card-tracking">
+            <div class="card-header">
+              <h3>Shipment Status</h3>
+              <span class="badge" id="status-badge">—</span>
+            </div>
+            <div class="progress">
+              <div class="bar" id="progress-bar"></div>
+            </div>
+            <div class="meta">
+              <div><strong>ETA:</strong> <span id="eta">—</span> <small class="muted" id="eta-note"></small></div>
+              <div><strong>Route:</strong> <span id="route">—</span></div>
+            </div>
+            <div class="timeline" id="timeline">
+              <!-- steps injected here -->
+            </div>
+            <div class="row actions">
+              <button class="btn warn" id="btn-advance" type="button" title="Advance status (demo)">Advance (demo)</button>
+            </div>
+          </div>
+
+          <div class="card" id="card-analytics">
+            <div class="card-header"><h3>Overview</h3></div>
+            <div class="kpis" id="kpis">
+              <!-- KPI pills injected here -->
+            </div>
+          </div>
+
+          <div class="card" id="card-map">
+            <div class="card-header">
+              <h3>Live Map</h3>
+              <div class="header-actions">
+                <label class="checkbox" title="Keep the camera on the truck">
+                  <input type="checkbox" id="follow-toggle" checked />
+                  <span>Follow</span>
+                </label>
+                <label class="checkbox" title="Keep map centered on the truck (smooth)">
+                  <input type="checkbox" id="center-toggle" />
+                  <span>Center</span>
+                </label>
+                <button class="btn ghost" id="btn-recenter" type="button" title="Recenter map">Recenter</button>
+              </div>
+            </div>
+            <div id="map" class="map"></div>
+          </div>
+
+          <div class="card" id="card-search">
+            <div class="card-header"><h3>Your Orders</h3></div>
+            <form id="email-form" class="row">
+              <input id="email-input" class="input" placeholder="your@email.com" type="email" />
+              <button class="btn" type="submit">Fetch</button>
+            </form>
+            <ul class="list" id="orders-list"></ul>
+          </div>
+
+          <div class="card" id="card-actions">
+            <div class="card-header"><h3>Actions</h3></div>
+
+            <h4 class="h4">Subscribe for updates</h4>
+            <form id="sub-form" class="row">
+              <input id="sub-order" class="input" placeholder="Order ID" />
+              <input id="sub-email" class="input" placeholder="Email" type="email" />
+              <button class="btn" type="submit">Subscribe</button>
+            </form>
+            <div class="muted" id="sub-result" style="margin-top: 8px;"></div>
+
+            <div class="divider"></div>
+
+            <h4 class="h4">Import from Email</h4>
+            <div class="col">
+              <textarea id="mail-raw" class="input" rows="4" placeholder="Paste your shipping email text or HTML here"></textarea>
+              <div class="row actions">
+                <button class="btn" id="btn-parse-email" type="button">Parse email</button>
+                <button class="btn ghost" id="btn-scan-gmail" type="button" title="Scan recent Gmail for shipping emails">Scan Gmail</button>
+              </div>
+              <div class="muted" id="mail-result"></div>
+            </div>
+          </div>
+        </section>
+
+        <dialog id="help-dialog">
+          <h3>Tips</h3>
+          <ul>
+            <li>Track demo orders: 1001–1004, O_ID_3000034</li>
+            <li>Partial search works: e.g., status=ship & q=100</li>
+            <li>Enable Live updates to auto-refresh status</li>
+            <li>Keyboard: F = Follow toggle, C = Center toggle, R = Recenter</li>
+          </ul>
+          <form method="dialog"><button class="btn" type="button" value="cancel">Close</button></form>
+        </dialog>
+      </main>
+
+      <footer class="site-footer">
+        <small></small>
+      </footer>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script src="/app.js" type="module"></script>
+  </body>
+  </html>
