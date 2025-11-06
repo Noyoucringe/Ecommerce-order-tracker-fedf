@@ -1075,10 +1075,12 @@ app.post('/api/returns', (req, res) => {
 
 // Subscribe for email notifications (demo): POST /api/subscribe { orderId, email }
 app.post('/api/subscribe', async (req, res) => {
+  console.log('[Subscribe] Received request:', req.body);
   try{
     const { orderId, email } = req.body || {};
     const id = normalizeOrderId(orderId);
     const em = String(email||'').trim().toLowerCase();
+    console.log('[Subscribe] Normalized:', { id, em });
     if(!id || !em) return res.status(400).json({ error: 'orderId and email required' });
     if(!demoOrders[id]) return res.status(404).json({ error: 'Order not found' });
     
