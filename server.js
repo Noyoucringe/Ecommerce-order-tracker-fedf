@@ -85,7 +85,16 @@ const sendEmailNotification = async (to, subject, html) => {
       html
     };
     
-    const info = await emailTransporter.sendMail(mailOptions);
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Email timeout after 10s')), 10000)
+    );
+    
+    const info = await Promise.race([
+      emailTransporter.sendMail(mailOptions),
+      timeoutPromise
+    ]);
+    
     console.log('[Email] Sent to', to, 'MessageId:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (err) {
@@ -1130,12 +1139,15 @@ app.post('/api/subscribe', async (req, res) => {
     `;
     
     const emailResult = await sendEmailNotification(em, emailSubject, emailHtml);
+    console.log('[Subscribe] Email result:', emailResult);
     
-    res.json({ 
+    const response = { 
       ok: true, 
       emailSent: emailResult.success,
       message: emailResult.success ? 'Subscription confirmed! Check your email.' : 'Subscription saved but email could not be sent (email not configured).'
-    });
+    };
+    console.log('[Subscribe] Sending response:', response);
+    res.json(response);
   }catch(err){ 
     console.error('[Subscribe] Error:', err);
     res.status(500).json({ error: 'Failed to save subscription' }); 
