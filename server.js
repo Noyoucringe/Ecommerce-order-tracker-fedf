@@ -1314,9 +1314,9 @@ if (process.env.SPA_FALLBACK === '1'){
   }
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   const hasAI = !!process.env.OPENAI_API_KEY;
   const hasAfterShip = !!process.env.AFTERSHIP_API_KEY;
-  console.log(`Order Tracker server running at http://localhost:${PORT}`);
+  console.log(`Order Tracker server running at http://0.0.0.0:${PORT}`);
   console.log(`[env] AI=${hasAI ? 'on' : 'off'} AfterShip=${hasAfterShip ? 'on' : 'off'} (.env: ${path.join(__dirname, '.env')})`);
 });
